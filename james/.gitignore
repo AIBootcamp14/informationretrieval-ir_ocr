@@ -1,0 +1,33 @@
+# Elasticsearch
+elasticsearch-8.8.0/
+elasticsearch-8.8.0-linux-x86_64.tar.gz
+code/elasticsearch-8.8.0/
+code/elasticsearch-8.8.0-linux-x86_64.tar.gz
+
+# Data files
+data/
+code/data/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.so
+
+# Environments
+.env
+.venv
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
