@@ -4,10 +4,10 @@ Dense/BM25 하이브리드와 LLM을 결합한 RAG 파이프라인입니다. 비
 
 ## 팀 소개
 
-| ![박패캠](https://avatars.githubusercontent.com/u/156163982?v=4) | ![이패캠](https://avatars.githubusercontent.com/u/156163982?v=4) | ![최패캠](https://avatars.githubusercontent.com/u/156163982?v=4) | ![김패캠](https://avatars.githubusercontent.com/u/156163982?v=4) | ![오패캠](https://avatars.githubusercontent.com/u/156163982?v=4) |
+| ![박재홍](https://avatars.githubusercontent.com/u/66048976?v=4) | ![김영](https://avatars.githubusercontent.com/u/213391898?v=4) | ![이찬](assets/LeeChan.png) | ![이준영](assets/junyeong.png) | ![김광묵](https://avatars.githubusercontent.com/u/20352532?v=4) |
 | :--------------------------------------------------------------: | :--------------------------------------------------------------: | :--------------------------------------------------------------: | :--------------------------------------------------------------: | :--------------------------------------------------------------: |
-|            [박패캠](https://github.com/UpstageAILab)             |            [이패캠](https://github.com/UpstageAILab)             |            [최패캠](https://github.com/UpstageAILab)             |            [김패캠](https://github.com/UpstageAILab)             |            [오패캠](https://github.com/UpstageAILab)             |
-|                            팀장, 담당 역할                             |                            담당 역할                             |                            담당 역할                             |                            담당 역할                             |                            담당 역할                             |
+|            [박재홍](https://github.com/woghd8503)             |            [김영](https://github.com/kimyoung9689)             |            [이찬](https://github.com/UpstageAILab)             |            [이준영](https://github.com/junyeonglee1111)             |            [김광묵](https://github.com/JackFink)             |
+|                            발표자                             |                            팀원                             |                            팀원                             |                            팀원                             |                            팀원                             |
 
 ---
 
