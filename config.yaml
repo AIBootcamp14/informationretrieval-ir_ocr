@@ -1,0 +1,27 @@
+seed: 42
+paths:
+  documents: data/documents.jsonl
+  eval: data/eval.jsonl
+  output: final_submission_rrf.jsonl
+retrieval:
+  encoder_model: BAAI/bge-m3
+  top_k: 50
+  batch_size: 32
+  use_hyde: true
+  use_bm25: true
+  hyde_temperature: 0.7
+fusion:
+  method: rrf
+  top_k_fusion: 100
+reranker:
+  model_name: BAAI/bge-reranker-v2-m3
+  top_k_final: 3
+classification:
+  cache_path: query_classifications.json
+  llm: solar-pro
+  skip: false
+elasticsearch:
+  version: 8.8.0
+  index: test
+  plugin: analysis-nori
+  ca_cert: ./elasticsearch-8.8.0/config/certs/http_ca.crt

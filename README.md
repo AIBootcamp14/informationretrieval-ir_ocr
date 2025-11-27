@@ -1,160 +1,205 @@
-# Title Scientific Knowledge Question Answering(OCR)
+# 과학 상식 질의응답 (OCR)
 
-## Team
+Dense/BM25 하이브리드와 LLM을 결합한 RAG 파이프라인입니다. 비과학 질문을 보수적으로 차단하고, HyDE·BM25·Bi-Encoder를 통해 재현율을 확보한 뒤 Cross-Encoder로 최종 정밀도를 끌어올려 MAP을 극대화합니다.
+
+## 팀 소개
 
 | ![박패캠](https://avatars.githubusercontent.com/u/156163982?v=4) | ![이패캠](https://avatars.githubusercontent.com/u/156163982?v=4) | ![최패캠](https://avatars.githubusercontent.com/u/156163982?v=4) | ![김패캠](https://avatars.githubusercontent.com/u/156163982?v=4) | ![오패캠](https://avatars.githubusercontent.com/u/156163982?v=4) |
 | :--------------------------------------------------------------: | :--------------------------------------------------------------: | :--------------------------------------------------------------: | :--------------------------------------------------------------: | :--------------------------------------------------------------: |
 |            [박패캠](https://github.com/UpstageAILab)             |            [이패캠](https://github.com/UpstageAILab)             |            [최패캠](https://github.com/UpstageAILab)             |            [김패캠](https://github.com/UpstageAILab)             |            [오패캠](https://github.com/UpstageAILab)             |
 |                            팀장, 담당 역할                             |                            담당 역할                             |                            담당 역할                             |                            담당 역할                             |                            담당 역할                             |
 
-## 0. Overview
-### Environment
+---
 
-- OS: Linux/macOS
+## 0. 빠른 시작 (TL;DR)
 
-- Language: Python 3.10+
+### 사전 준비물
 
-- Database: Elasticsearch 8.8.0
+- Python 3.10 이상, pip, (선택) CUDA GPU
+- Elasticsearch 8.8.0 + `analysis-nori` 플러그인
+- 외부 API: Upstage Solar (`SOLAR_API_KEY`), OpenAI (`OPENAI_API_KEY`)
 
-- LLM: OpenAI GPT-4o-mini (Classification, Reranking, Generation)
+### 설치
 
-### Requirements
-- RAG 시스템의 MAP 점수를 극대화하는 것
-
-## 1. Competiton Info
-
-### Overview
-
-- 본 대회는 RAG(Retrieval Augmented Generation) 시스템의 검색 성능에 집중하며, 4200여 개의 과학 상식 문서를 대상으로 질의 응답 시스템을 구축하는 것이 목표 입니다.
-
-- 특히, 질문이 과학 상식인지 아닌지를 판단하는 의도 분류가 MAP 점수에 결정적인 영향을 끼칩니다.
-
-
-대회에서 사용되는 변형된 MAP 로직은 두 가지 핵심 지표로 구성
-저희 팀은 이 로직을 역분석하여 성능 극대화 전략을 세웠습니다.
-
-- 1. 과학 상식 질문인 경우 (MAP의 Precision 측정):
-
-topk (최대 3개)에 정답 문서가 얼마나 정확하게 포함되었는지로 점수 계산
-
-목표: Reranking을 통해 검색 결과의 **정확도(Precision)**를 극대화해야 함
-
-- 2. 과학 상식 질문이 아닌 경우 (의도 분류 정확도):
-
-검색 결과 (topk)가 없어야 (False) $\text{1}$점을 획득. topk가 존재하면 $\text{0}$점
-
-목표: query_analyzer.py 모듈을 통해 비과학 질문을 정확히 False로 분류해야 함
-
-### Timeline
-
-- 2025.11.14 10:00
-- 2025.11.27 19:00
-
-## 2. Components
-
-### Directory
-
-- .env 기반의 모듈화된 아키텍처를 구축하여 안정성과 유지보수성을 확보
-
-e.g.
-```
-/ir_ocr_rag_project
-├── .gitignore
-├── .env                     # 환경 변수 (최고 보안 및 유연성)
-├── requirements.txt         # 패키지 목록
-├── run_competition.py       # 메인 실행 스크립트
-├── config.py                # 설정 관리 및 환경 변수 로드
-│
-├── src                      # 핵심 로직 모듈
-│   ├── __init__.py          
-│   ├── query_analyzer.py    # 의도 분류 (MAP 0/1 결정) 및 Standalone Query 생성
-│   ├── retriever.py         # OCR 앙상블 검색 및 LLM Reranking (TopK 결정)
-│   └── generator.py         # 최종 답변 생성
-│
-├── data                     # 데이터 폴더 (Git 무시)
-│   ├── .gitkeep
-│   ├── documents.jsonl
-│   └── eval.jsonl
-│
-└── scripts                  # 유틸리티
-    ├── install_elasticsearch.sh
-    └── index_data.py        # 데이터 색인 전용
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+# 프로젝트 전역에서 사용하는 추가 패키지
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+pip install transformers==4.44.0 rank-bm25==0.2.2 tqdm==4.66.5 numpy==1.26.4 pyyaml
 ```
 
-## 3. Data descrption
+### 환경 변수
 
-### Dataset overview
+```bash
+export SOLAR_API_KEY="YOUR_UPSTAGE_SOLAR_KEY"
+export OPENAI_API_KEY="YOUR_OPENAI_KEY"
+export PYTHONPATH=$PWD
+```
 
-- 약 4200개의 과학 상식 문서 (MMLU, ARC 기반). 문서 전문 텍스트는 content 필드에 저장됨
+### Dense+BM25 기본 실행
 
+```bash
+python main.py \
+  --documents_path data/documents.jsonl \
+  --eval_path data/eval.jsonl \
+  --output_path outputs/final_submission_rrf.jsonl
+```
 
-- 평가 데이터 (eval.jsonl): 총 $\text{220}$개의 질의.
+### Elasticsearch 기준 파이프라인
 
--  특징 1: 멀티턴(Multi-turn) 대화 포함 (맥락 이해 필수).
+1. `install_elasticsearch.sh` 실행 후 새 비밀번호 생성 단계에서 `y` 입력
+2. 출력된 비밀번호를 `rag_with_elasticsearch.py` 85줄 부근 `es_password`에 입력
+3. 169줄 부근 `os.environ["OPENAI_API_KEY"]` 값을 세팅
+4. `python rag_with_elasticsearch.py`
 
--  특징 2: 비과학 질문(잡담, 의견 등) 약 $\text{20}$개 포함 (MAP 점수 관리가 핵심)
+---
 
-### EDA
+## 1. 저장소 구조
 
-- _Describe your EDA process and step-by-step conclusion_
+```
+informationretrieval-ir_ocr
+├── README.md
+├── config.yaml                 # 시드, 모델, top-k 등 기본 하이퍼파라미터
+├── requirements.txt
+├── main.py                     # Dense + HyDE + BM25 + RRF 파이프라인
+├── retriever.py                # BM25, BGE-M3 임베딩 유틸
+├── reranker.py                 # BGE Cross-Encoder 래퍼
+├── data_utils.py               # 멀티턴 전처리 + Solar API 래퍼
+├── rag_with_elasticsearch.py   # Elasticsearch 기반 RAG 예제
+├── install_elasticsearch.sh    # ES 다운로드/플러그인/비밀번호 초기화
+├── data/                       # documents.jsonl, eval.jsonl (git ignore)
+└── outputs/                    # 제출 파일 및 체크포인트 저장 폴더
+```
 
-### Data Processing
+원본 데이터는 `data/`에 그대로 두고, 대용량 캐시(`doc_embeddings*.pkl`)는 루트에 저장합니다. 실험 기록은 `logs/` 혹은 `wandb`/`mlflow`에 남깁니다.
 
-- 색인 전략: Elasticsearch를 사용하여 documents.jsonl의 문서들을 scientific_knowledge_index에 색인
+---
 
-- docid, src, content. content 필드는 BM25 키워드 검색에 최적화된 표준 분석기(standard analyzer)를 사용 (임베딩 대신 키워드 검색의 강점을 활용)
+## 2. 데이터 설명
 
+- **documents.jsonl**: 약 4.2k개의 과학 상식 문서 (`docid`, `src`, `content`).
+- **eval.jsonl**: 220개의 멀티턴 대화(`msg`)와 `eval_id`.
+- 약 20개의 질의는 의도적으로 비과학 질문입니다. 해당 쿼리에서 `topk=[]`를 유지하면 MAP 만점을 얻으므로 분류기가 매우 중요합니다.
 
-## 4. Modeling
+`data_utils.extract_category_from_src`가 문서를 카테고리로 태깅하여 이후 분석에 활용합니다.
 
-### Model descrition
+---
 
+## 3. 파이프라인 아키텍처
 
-- 속도와 정확도를 동시에 잡기 위해 $\text{GPT-4o-mini}$ 모델을 파이프라인의 핵심적인 판단 및 재조정(Reranking) 단계에 활용
+| 스테이지 | 파일 / 함수 | 핵심 내용 |
+| --- | --- | --- |
+| 질의 전처리·의도 판별 | `data_utils.preprocess_queries` | 멀티턴 사용자 메시지 병합, Solar-pro 결과를 `query_classifications.json`으로 캐시, 간단한 규칙 기반 인사 필터. |
+| HyDE 생성 | `data_utils.generate_hypothetical_document` | 과학 질문일 때 가상 문서를 만들어 Dense 재현율 향상. |
+| Dense 검색 | `retriever.BGEBiEncoder`, `retrieve_documents` | `BAAI/bge-m3` 임베딩, 코사인 유사도, `doc_embeddings_bge_m3.pkl` 캐시. |
+| BM25 검색 | `retriever.BM25Retriever` | `bert-base-multilingual-cased` 토크나이저 + `rank_bm25`. |
+| 융합 | `main.rrf_fusion` | Dense, HyDE, BM25 후보를 Reciprocal Rank Fusion으로 결합. |
+| 재순위 | `reranker.CrossEncoderReranker` | `BAAI/bge-reranker-v2-m3` 로그릿으로 최종 Top-3 선택. |
+| 제출 포맷 | `main.py` | `eval_id`, `standalone_query`, `topk`, `references` JSONL 출력. (필요 시 `rag_with_elasticsearch.py`에서 답변 생성 가능) |
 
-- 의도 분류: 모델 역할은 사용자의 질문이 과학 상식인지 아닌지를 판단하는 거야. MAP 평가 로직상 비과학 질문에 검색 결과를 주면 0점이 되기 때문에, 이 단계는 MAP 1점 방어를 위한 가장 중요한 방어선. GPT-4o-mini가 빠르고 저렴하면서도 '아니다(False)' 판단에 대한 정확도가 매우 높다는 점을 확인하고 이 모델을 선택
+MAP 전략 요약
 
-- Reranking (재조정): 검색 엔진(Elasticsearch)에서 얻은 15개의 초기 문서 풀에서 가장 정확한 3개의 문서를 최종적으로 선정하는 역할을 함. 전통적인 BM25 점수 대신 GPT-4o-mini의 높은 문맥 이해력을 사용하여 질문과 문서 내용의 실제 의미적 연관성을 평가. 이를 통해 Precision을 극대화하고 topk의 정확도를 비약적으로 높일 수 있었기 때문에 이 모델을 채택
+1. **재현율 게이트**: Dense + HyDE + BM25로 OCR 잡음을 방어하며 최소 한 개의 정답 문서를 풀에 포함.
+2. **정밀도 게이트**: Cross-Encoder가 최종 3개만 남겨 평가 로직과 정렬.
+3. **가드레일**: `is_science=False`이면 `topk`를 비워 MAP 패널티를 회피.
 
-- 답변 생성: 최종적으로 선택된 3개 문서를 기반으로 사용자에게 전달할 최종 답변을 생성하는 역할이야. GPT-4o-mini는 문서 기반의 사실을 확인하고, "초등학생도 이해하기 쉽게"라는 프롬프트 지침에 맞춰 간결하고 명확한 답변을 만드는 데 최적의 성능을 보여줬기 때문에 최종 모델로 선정
+---
 
+## 4. 실행 방법
 
+### 4.1 기본 하이브리드 파이프라인 (main.py)
 
-### Modeling Process
+| 플래그 | 설명 | 기본값 |
+| --- | --- | --- |
+| `--documents_path` | 문서 JSONL 경로 | `data/documents.jsonl` |
+| `--eval_path` | 평가 쿼리 경로 | `data/eval.jsonl` |
+| `--output_path` | 제출 파일 경로 | `final_submission_rrf.jsonl` |
+| `--top_k_retrieval` | 각 경로에서 가져올 후보 수 | `50` |
+| `--top_k_fusion` | RRF 이후 유지할 후보 수 | `100` |
+| `--top_k_final` | 최종 제출 doc 개수 | `3` |
+| `--recompute_embeddings` | Dense 임베딩 강제 재계산 | `False` |
+| `--skip_classification` | 모든 쿼리를 과학으로 간주 | `False` |
+| `--use_hyde/--no_hyde` | HyDE 경로 on/off | `True` |
+| `--use_bm25/--no_bm25` | BM25 경로 on/off | `True` |
 
-- 저희 팀은 단순히 검색을 한 번 하는 것이 아니라, MAP 지표의 변동성을 관리하고 OCR의 불확실성을 수용한 3단계 파이프라인을 구축했습니다.
+Ablation 예시 (HyDE 비활성화, 임베딩 재생성, 출력 경로 변경):
 
-Step 1: 의도 분류 및 Standalone Query 생성 (query_analyzer.py)
+```bash
+python main.py \
+  --recompute_embeddings \
+  --no_hyde \
+  --documents_path data/documents.jsonl \
+  --eval_path data/eval.jsonl \
+  --output_path outputs/baseline_no_hyde.jsonl
+```
 
-목표: MAP $\text{1}$점 방어
+### 4.2 Elasticsearch RAG (rag_with_elasticsearch.py)
 
-전략: LLM에게 "감정, 의견, 가치 판단은 무조건 False"라는 가장 엄격한 시스템 프롬프트를 주입.멀티턴 질문에 대해서는 완전한 맥락을 갖춘 Standalone Query를 생성하여 검색 엔진에 전달
+1. `bash install_elasticsearch.sh` → ES 다운로드 + Nori 설치 + 데몬 기동 + 비밀번호 재설정
+2. `es_password`(85줄) 갱신
+3. 환경 변수 혹은 소스(169줄)에서 `OPENAI_API_KEY` 지정
+4. `python rag_with_elasticsearch.py`
+   - `test` 인덱스에 Sparse/Nori + Dense/KR-SBERT를 모두 색인
+   - `sparse_retrieve`, `dense_retrieve` 헬퍼 제공
+   - 함수 호출 기반 `answer_question`으로 검색 필요 여부 판단 후 답변 생성
 
-Step 2: OCR 앙상블 검색 & Reranking (retriever.py)
+자체 호스팅 검색 엔진이 필요할 때 이 경로를 사용합니다.
 
-OCR 극복 전략 (Recall 확보):
+---
 
-**원본 쿼리 (Standalone Query)**로 Elasticsearch 검색 (K=15).
+## 5. 설정 & 실험 추적
 
-OCR 노이즈 쿼리 생성: LLM(gpt-4o-mini, $T=0.8$)을 사용해 띄어쓰기 오류, 유사 글자 치환 등의 OCR 오류를 시뮬레이션한 변형 쿼리 생성.
+- 모든 기본 하이퍼파라미터는 `config.yaml`에 명시되어 있으며 CLI 실행 시 참고합니다.
+- 재현성 확보를 위해 랜덤 시드를 고정하세요.
 
-앙상블 검색: 원본 쿼리와 OCR 노이즈 쿼리 두 개로 검색을 수행하고, 결과를 합쳐 중복 제거 후 상위 15개의 검색 풀(Pool)을 형성 (Recall 극대화)
+```bash
+export PYTHONHASHSEED=42
+export TOKENIZERS_PARALLELISM=false
+```
 
-정확도 극대화 (Precision 확보):
-4.  LLM Reranking: 검색 풀 15개와 원본 질문을 다시 gpt-4o-mini에게 전달하여 내용적 연관성이 가장 높은 최종 3개topk의 docid만 선정
+```python
+import random, numpy as np, torch
+random.seed(42)
+np.random.seed(42)
+torch.manual_seed(42)
+torch.cuda.manual_seed_all(42)
+```
 
-Step 3: 답변 생성 (generator.py)
+- 주요 실험은 `wandb` 혹은 `mlflow`에 기록 (`WANDB_PROJECT`, `WANDB_RUN_GROUP` 등 설정)하면 JSONL 출력의 `topk`/`references` 정보를 그대로 추적할 수 있습니다.
 
-효율성: topk로 선정된 docid를 Elasticsearch의 MGET API를 통해 한 번에 가져와서 네트워크 효율을 높임
+---
 
-간결성: LLM에게 "초등학생도 알기 쉽게, 짧고 간결하게" 답하라는 지침을 프롬프트에 명시하여 사용자 요구사항을 충족
+## 6. 개발 팁
 
+- `query_classifications.json`은 Solar 응답을 캐시합니다. 프롬프트 변경 시 파일을 삭제하고 다시 생성하세요.
+- `doc_embeddings_bge_m3.pkl` 파일은 1GB 이상이 될 수 있습니다. 저장소 정책상 업로드가 어렵다면 필요 시마다 재생성하세요.
+- GPU 메모리가 부족하면 `BGEBiEncoder.encode` 및 `CrossEncoderReranker.rerank`의 `batch_size` 값을 낮추세요.
+- BM25 토크나이즈 비용이 크면 토큰화된 문서를 직렬화(`pickle`)해 재사용할 수 있습니다.
 
-## 5. Result
+---
 
-### Leader Board
+## 7. 대회 맥락 및 성과
 
-- _Insert Leader Board Capture_
-- _Write rank and score_
+- **목표**: 과학 질문에는 정확한 문서를, 비과학 질문에는 빈 `topk`를 반환하여 MAP 극대화.
+- **타임라인**: 2025-11-14 10:00 → 2025-11-27 19:00 (KST)
+- **리더보드**: 추후 스크린샷과 점수를 첨부할 예정입니다.
 
+---
 
+## 8. 트러블슈팅
+
+- **ES 비밀번호 분실**: `sudo -u daemon elasticsearch-8.8.0/bin/elasticsearch-reset-password -u elastic`
+- **`SSL: CERTIFICATE_VERIFY_FAILED`**: `rag_with_elasticsearch.py`에 명시된 CA 경로(`./elasticsearch-8.8.0/config/certs/http_ca.crt`)를 그대로 사용하세요.
+- **OpenAI 쿼터 에러**: 올바른 `OPENAI_API_KEY`를 지정하거나 `OPENAI_BASE_URL`을 통해 Azure 등 대체 엔드포인트를 연결하세요.
+- **Solar API Rate Limit**: 규칙 기반 필터로 단순 인사를 미리 제거하고, 캐시된 분류 결과를 재사용하세요.
+
+---
+
+## 9. 향후 계획
+
+- `rag_with_elasticsearch.py`의 답변 생성을 메인 파이프라인 JSON 출력과 통합
+- ColBERT 등 멀티 벡터 인덱스를 활용한 OCR 강건성 향상
+- Hydra 기반 설정 로딩으로 `config.yaml` 자동 적용
+- HyDE 다중 변형 생성 후 공동 재순위 전략 실험
