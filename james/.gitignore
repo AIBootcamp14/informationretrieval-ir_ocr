@@ -1,22 +1,19 @@
 # Elasticsearch
 elasticsearch-8.8.0/
 elasticsearch-8.8.0-linux-x86_64.tar.gz
-code/elasticsearch-8.8.0/
-code/elasticsearch-8.8.0-linux-x86_64.tar.gz
 
 # Data files
 data/
-code/data/
-code/query_classifications.json
+query_classifications.json
 
 # Generated artifacts
-code/doc_embeddings*.pkl
-code/*submission*.jsonl
-code/*submission_final.csv
-code/*scores*.csv
-code/reranked_submission*.csv
-code/reranked_submission*.jsonl
-code/final_submission*.jsonl
+doc_embeddings*.pkl
+*submission*.jsonl
+*submission_final.csv
+*scores*.csv
+reranked_submission*.csv
+reranked_submission*.jsonl
+final_submission*.jsonl
 
 # Python
 __pycache__/
