@@ -7,6 +7,16 @@ code/elasticsearch-8.8.0-linux-x86_64.tar.gz
 # Data files
 data/
 code/data/
+code/query_classifications.json
+
+# Generated artifacts
+code/doc_embeddings*.pkl
+code/*submission*.jsonl
+code/*submission_final.csv
+code/*scores*.csv
+code/reranked_submission*.csv
+code/reranked_submission*.jsonl
+code/final_submission*.jsonl
 
 # Python
 __pycache__/
