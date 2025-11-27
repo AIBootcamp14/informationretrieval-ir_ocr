@@ -1,44 +1,40 @@
-# .gitignore
-# OS에서 생성하는 파일
+# Elasticsearch
+elasticsearch-8.8.0/
+elasticsearch-8.8.0-linux-x86_64.tar.gz
+
+# Data files
+data/
+query_classifications.json
+
+# Generated artifacts
+doc_embeddings*.pkl
+*submission*.jsonl
+*submission_final.csv
+*scores*.csv
+reranked_submission*.csv
+reranked_submission*.jsonl
+final_submission*.jsonl
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.so
+
+# Environments
+.env
+.venv
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
 .DS_Store
 Thumbs.db
 
-# 파이썬 가상 환경
-venv/
-.venv/
-env/
-
-# 파이썬 컴파일된 파일
-*.pyc
-__pycache__/
-
-# 배포/빌드 관련
-dist/
-build/
-*.egg-info/
-
-# Jupyter Notebook & 데이터 파일
-.ipynb_checkpoints
-
-# --- 데이터 및 결과물 ---
-data/
-data.tar.gz
-documents.jsonl
-eval.jsonl
-results/
-submission.csv
-sample_submission.csv
-
-# IDE/에디터 설정 파일 (VS Code, PyCharm 등)
-.idea/
-.vscode/
-
-# 로그 및 시스템/모델 결과
-logs/
-model_weights/
-
-# --- 민감 정보 ---
-.env
-secret.py
-config.py
-es_password.txt # ES 비밀번호 파일은 업로드 제외
