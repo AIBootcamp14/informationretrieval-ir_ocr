@@ -165,12 +165,14 @@ for rst in search_result_retrieve['hits']['hits']:
 from openai import OpenAI
 import traceback
 
-# OpenAI API 키를 환경변수에 설정
-os.environ["OPENAI_API_KEY"] = "REDACTED_OPENAI_KEY"
+# OpenAI API 키는 환경 변수에서 불러온다
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    raise RuntimeError("OPENAI_API_KEY 환경 변수를 설정하세요.")
 
-client = OpenAI()
-# 사용할 모델을 설정
-llm_model = "gpt-4o-mini"
+client = OpenAI(api_key=OPENAI_API_KEY)
+# 사용할 모델을 설정 (필요 시 환경 변수로 재정의)
+llm_model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
 
 # RAG 구현에 필요한 Question Answering을 위한 LLM  프롬프트
 persona_qa = """
